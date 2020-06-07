@@ -2,6 +2,7 @@ package gonnect
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"text/template"
@@ -10,8 +11,10 @@ import (
 type Addon struct {
 	Config          *EnvironmentConfiguration
 	Store           *Store
-	AddonDescriptor string
-	rootFileSystem	*http.FileSystem
+	AddonDescriptor map[string]interface{}
+	rootFileSystem  *http.FileSystem
+	Key             *string
+	Name            *string
 }
 
 func (addon *Addon) readAddonDescriptor() (err error) {
@@ -41,7 +44,7 @@ func (addon *Addon) readAddonDescriptor() (err error) {
 		return err
 	}
 
-	addon.AddonDescriptor = buffer.String()
+	json.Unmarshal(buffer.Bytes(), &addon.AddonDescriptor)
 
 	return nil
 }
@@ -63,8 +66,8 @@ func NewAddon(root *http.FileSystem) (*Addon, error) {
 	}
 
 	addon := &Addon{
-		Config: config,
-		Store:  store,
+		Config:         config,
+		Store:          store,
 		rootFileSystem: root,
 	}
 
@@ -72,6 +75,12 @@ func NewAddon(root *http.FileSystem) (*Addon, error) {
 	if err != nil {
 		return addon, err
 	}
+
+	name := addon.AddonDescriptor["name"].(string)
+	addon.Name = &name
+
+	key := addon.AddonDescriptor["key"].(string)
+	addon.Key = &key
 
 	return addon, nil
 }
