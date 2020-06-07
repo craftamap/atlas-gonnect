@@ -1,14 +1,16 @@
 package gonnect
 
 import (
+	"errors"
 	"io"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Development EnvironmentConfiguration
-	Production  EnvironmentConfiguration
+	CurrentEnvironment string
+	Development        EnvironmentConfiguration
+	Production         EnvironmentConfiguration
 }
 
 type EnvironmentConfiguration struct {
@@ -22,19 +24,28 @@ type StoreConfiguration struct {
 	DatabaseUrl string
 }
 
-func NewConfig(configFile io.Reader) (error, *Config) {
+func NewConfig(configFile io.Reader) (*EnvironmentConfiguration, error) {
 	runtimeViper := viper.New()
+	runtimeViper.SetEnvPrefix("gonnect")
+	runtimeViper.BindEnv("CurrentEnvironment")
 	runtimeViper.SetConfigType("json") // or viper.SetConfigType("YAML")
 	config := &Config{}
 
 	err := runtimeViper.ReadConfig(configFile)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	err = runtimeViper.Unmarshal(config)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	return nil, config
+	if config.CurrentEnvironment == "development" {
+		return &config.Development, nil
+	} else if config.CurrentEnvironment == "production" {
+		return &config.Production, nil
+	} else {
+		return nil, errors.New("No Environment set")
+	}
+
 }
