@@ -1,6 +1,10 @@
 package gonnect
 
-import "time"
+import (
+	"encoding/json"
+	"io"
+	"time"
+)
 
 type Tenant struct {
 	ClientKey      string `json:"clientKey" gorm:"type:varchar(255);primary_key"`
@@ -12,40 +16,20 @@ type Tenant struct {
 	AddonInstalled bool   `json:"-" gorm:"type:bit;NOT NULL"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	EventType		string `json:"eventType" gorm:"-"`
 }
 
-func NewTenantFromMap(body map[string]interface{}) *Tenant {
+func NewTenantFromReader(r io.Reader) (*Tenant, error) {
 	tenant := &Tenant{}
-	//TODO: How to do this nice?
-	clientKey, ok := body["clientKey"].(string)
-	if ok {
-		tenant.ClientKey = clientKey
+	err := json.NewDecoder(r).Decode(tenant)
+	if err != nil {
+		return nil, err
 	}
-	publicKey, ok := body["publicKey"].(string)
-	if ok {
-		tenant.PublicKey = publicKey
-	}
-	sharedSecret, ok := body["sharedSecret"].(string)
-	if ok {
-		tenant.SharedSecret = sharedSecret
-	}
-	baseURL, ok := body["baseUrl"].(string)
-	if ok {
-		tenant.BaseURL = baseURL
-	}
-	productType, ok := body["productType"].(string)
-	if ok {
-		tenant.ProductType = productType
-	}
-	description, ok := body["description"].(string)
-	if ok {
-		tenant.Description = description
-	}
-	if body["eventType"].(string) == "installed" {
+	if tenant.EventType == "installed" {
 		tenant.AddonInstalled = true
-	} else if body["eventType"].(string) == "installed" {
+	} else if tenant.EventType == "installed" {
 		tenant.AddonInstalled = false
 	}
-
-	return tenant
+	LOG.Debugf("Created new Tenant instance from reader; tenant: %+v\n", *tenant)
+	return tenant, nil
 }

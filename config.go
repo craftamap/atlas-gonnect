@@ -14,9 +14,10 @@ type Config struct {
 }
 
 type EnvironmentConfiguration struct {
-	Port    int
-	BaseUrl string
-	Store   StoreConfiguration
+	Port            int
+	BaseUrl         string
+	Store           StoreConfiguration
+	EnvironmentName string
 }
 
 type StoreConfiguration struct {
@@ -25,10 +26,15 @@ type StoreConfiguration struct {
 }
 
 func NewConfig(configFile io.Reader) (*EnvironmentConfiguration, error) {
+	// TODO: I dont like this approach rn, we should at least store the
+	// CurrentEnvironment so the programmers can interact with
+	LOG.Info("Initializing Configuration")
+
 	runtimeViper := viper.New()
+	runtimeViper.SetDefault("CurrentEnvironment", "development")
 	runtimeViper.SetEnvPrefix("gonnect")
 	runtimeViper.BindEnv("CurrentEnvironment")
-	runtimeViper.SetConfigType("json") // or viper.SetConfigType("YAML")
+	runtimeViper.SetConfigType("json")
 	config := &Config{}
 
 	err := runtimeViper.ReadConfig(configFile)
@@ -41,11 +47,14 @@ func NewConfig(configFile io.Reader) (*EnvironmentConfiguration, error) {
 	}
 
 	if config.CurrentEnvironment == "development" {
+		LOG.Info("development configuration initialized")
+		config.Development.EnvironmentName = "development"
 		return &config.Development, nil
 	} else if config.CurrentEnvironment == "production" {
+		LOG.Info("configuration initialized")
+		config.Production.EnvironmentName = "production"
 		return &config.Production, nil
 	} else {
 		return nil, errors.New("No Environment set")
 	}
-
 }

@@ -55,6 +55,8 @@ func (h RequestMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	h.addon.Logger.Debug("Setting Context Variables in Request Middleware")
+	//TODO: Better Logging in this middleware
 	context.Set(r, "title", *h.addon.Name)
 	context.Set(r, "addonKey", *h.addon.Key)
 	context.Set(r, "license", getParam("lic"))

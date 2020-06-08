@@ -32,6 +32,7 @@ func extractUnverifiedClaims(tokenStr string, validator jwt.Keyfunc) (jwt.MapCla
 }
 
 func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	//TODO: Add better logging here
 	//TODO: Add AC_OPTS no-auth
 
 	extractJwt := func() (string, bool) {

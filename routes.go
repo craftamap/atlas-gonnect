@@ -37,18 +37,18 @@ type InstalledHandler struct {
 }
 
 func (h InstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	body := map[string]interface{}{}
-	err := json.NewDecoder(r.Body).Decode(&body)
+	tenant, err := NewTenantFromReader(r.Body)
 	if err != nil {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
 	}
-	tenant := NewTenantFromMap(body)
 	_, err = h.Addon.Store.set(tenant)
 	if err != nil {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
 	}
+	LOG.Infof("installed new tenant %s\n", tenant.BaseURL)
+	//TODO: Figure out what to response - like with my girlfriend <3
 	w.Write([]byte("OK"))
 }
 
@@ -61,18 +61,18 @@ type UninstalledHandler struct {
 }
 
 func (h UninstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	body := map[string]interface{}{}
-	err := json.NewDecoder(r.Body).Decode(&body)
+	tenant, err := NewTenantFromReader(r.Body)
 	if err != nil {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
 	}
-	tenant := NewTenantFromMap(body)
 	_, err = h.Addon.Store.set(tenant)
 	if err != nil {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
 	}
+	LOG.Infof("uninstalled tenant %s\n", tenant.BaseURL)
+	//TODO: Figure out what to response
 	w.Write([]byte("OK"))
 }
 
