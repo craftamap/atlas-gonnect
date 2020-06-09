@@ -10,6 +10,7 @@ type Tenant struct {
 	ClientKey      string `json:"clientKey" gorm:"type:varchar(255);primary_key"`
 	PublicKey      string `json:"publicKey" gorm:"type:varchar(512)"`
 	SharedSecret   string `json:"sharedSecret" gorm:"type:varchar(255);NOT NULL"`
+	OauthClientId  string `json:"oauthClientId" gorm:"type:varchar(255)"`
 	BaseURL        string `json:"baseUrl" gorm:"type:varchar(255);NOT NULL"`
 	ProductType    string `json:"productType" gorm:"type:varchar(255)"`
 	Description    string `json:"description" gorm:"type:varchar(255)"`

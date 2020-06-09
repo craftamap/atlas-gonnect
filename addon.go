@@ -68,10 +68,9 @@ func (addon *Addon) readAddonDescriptor() (err error) {
 		return err
 	}
 
-	json.Unmarshal(buffer.Bytes(), &addon.AddonDescriptor)
-
-	return nil
+	return json.Unmarshal(buffer.Bytes(), &addon.AddonDescriptor)
 }
+
 
 func NewAddon(root *http.FileSystem) (*Addon, error) {
 	LOG.Info("Initializing new Addon")
