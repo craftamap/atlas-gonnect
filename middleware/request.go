@@ -67,7 +67,10 @@ func (h RequestMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	context.Set(r, "hostBaseUrl", getHostBaseUrlFromQueryParams())
 
 	if(len(h.verifiedParams) > 0){
-		// TODO: verifiedParams Logic
+		context.Set(r, "userAccountId", h.verifiedParams["userAccountId"]);
+		context.Set(r, "clientKey", h.verifiedParams["clientKey"]);
+		context.Set(r, "hostBaseUrl", h.verifiedParams["hostBaseUrl"]);
+		context.Set(r, "token", h.verifiedParams["token"]);
 	}
 
 	context.Set(r, "baseUrl", getHostBaseUrlFromQueryParams())

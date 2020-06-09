@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	gonnect "github.com/craftamap/atlas-gonnect"
+	atlasjwt "github.com/craftamap/atlas-gonnect/atlas-jwt"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -35,6 +36,8 @@ func extractUnverifiedClaims(tokenStr string, validator jwt.Keyfunc) (jwt.MapCla
 func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//TODO: Add better logging here
 	//TODO: Add AC_OPTS no-auth
+	//TODO: Refactor to be more compact
+	//TODO: scoping
 
 	extractJwt := func() (string, bool) {
 		var tokenInQuery = r.URL.Query().Get(JWT_PARAM)
@@ -97,7 +100,9 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	clientKey := unverifiedClaims["iss"].(string)
 
-	//TODO: aud-stuff -
+	if unverifiedClaims["aud"] != nil && unverifiedClaims["aud"] != "" {
+		clientKey = unverifiedClaims["aud"].(string)
+	}
 
 	tenant, err := h.addon.Store.Get(clientKey)
 
@@ -107,50 +112,103 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	{
-		secret := tenant.SharedSecret
-		if secret == "" {
-			w.WriteHeader(401)
-			h.addon.Logger.Warn("Could not find JQT sharedSecret in tenant clientKey")
-			return
-		}
-
-		verifiedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				w.WriteHeader(401)
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-			}
-
-			return []byte(secret), nil
-		})
-
-		if err != nil {
-			w.WriteHeader(500)
-			h.addon.Logger.Warn("Could not verify JWT Token")
-			return
-		}
-
-		err = verifiedToken.Claims.Valid()
-		if err != nil {
-			w.WriteHeader(500)
-			h.addon.Logger.Warn("Could not find verify JWT Claims; Auth request has expired")
-			return
-		}
-
-		claims, ok := verifiedToken.Claims.(jwt.MapClaims)
-		if !ok {
-			w.WriteHeader(500)
-			h.addon.Logger.Warn("Could not cast Claims")
-			return
-		}
-		//TODO: Replace true with skip QshVerification
-		if true && claims["qsh"] != "" {
-
-		}
-
+	secret := tenant.SharedSecret
+	if secret == "" {
+		w.WriteHeader(401)
+		h.addon.Logger.Warn("Could not find JQT sharedSecret in tenant clientKey")
+		return
 	}
 
-	h.h.ServeHTTP(w, r)
+	verifiedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		// TODO: We should not check the token header for the method instead of using HMAC by default
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			w.WriteHeader(401)
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte(secret), nil
+	})
+
+	if err != nil {
+		w.WriteHeader(500)
+		h.addon.Logger.Warn("Could not verify JWT Token")
+		return
+	}
+
+	err = verifiedToken.Claims.Valid()
+	if err != nil {
+		w.WriteHeader(500)
+		h.addon.Logger.Warn("Could not find verify JWT Claims; Auth request has expired")
+		return
+	}
+
+	claims, ok := verifiedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		w.WriteHeader(500)
+		h.addon.Logger.Warn("Could not cast Claims")
+		return
+	}
+	//TODO: Replace true with skip QshVerification
+	if true && claims["qsh"] != "" {
+		expectedHash := atlasjwt.CreateQueryStringHash(r, false, h.addon.Config.BaseUrl)
+		if claims["qsh"] != expectedHash {
+			// If that didn't verify, it might be a  post/put - check the request body too
+			expectedHash := atlasjwt.CreateQueryStringHash(r, false, h.addon.Config.BaseUrl)
+			if claims["qsh"] != expectedHash {
+				h.addon.Logger.Errorf("Auth failure: Query hash mismatch: Received %s but calculated %s", claims["qsh"], expectedHash)
+			}
+		}
+	}
+
+	h.addon.Logger.Info("Auth successful")
+
+	createSessionToken := func() (string, error) {
+		verClaims := verifiedToken.Claims.(jwt.MapClaims)
+
+		claims := &jwt.StandardClaims{
+			Issuer: *h.addon.Key,
+			// TODO: Check if subject can be asserted
+			Audience: clientKey,
+		}
+		subject, ok := verClaims["subject"].(string)
+		if ok {
+			claims.Subject = subject
+		}
+
+		// TODO: We may have to add the context workaround, but lets ignore it for now
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, err := token.SignedString([]byte(tenant.SharedSecret))
+		if err != nil {
+			return "", err
+		}
+
+		w.Header().Set("X-acpt", signedToken) // TODO: Do we really need to do this?
+
+		return signedToken, nil
+	}
+
+	tokenString, err := createSessionToken()
+	if err != nil {
+		//TODO: Do we really want to fail here?
+		w.WriteHeader(500)
+		h.addon.Logger.Warnf("Could not create new access token %s", err)
+		panic(err)
+	}
+
+	oldVerClaims := verifiedToken.Claims.(jwt.MapClaims)
+
+	verifiedParams := map[string]string{
+		"clientKey":   clientKey,
+		"hostBaseUrl": h.addon.Config.BaseUrl,
+		"token":       tokenString,
+		// TODO: We may have to add the context workaround instead of just using sub as userAccountId, but lets ignore it for now
+		"userAccountId": oldVerClaims["sub"].(string),
+	}
+
+	requestHandler := NewRequestMiddleware(h.addon, verifiedParams)
+
+	requestHandler(h.h).ServeHTTP(w, r)
 }
 
 func NewAuthenticationMiddleware(addon *gonnect.Addon) func(h http.Handler) http.Handler {
