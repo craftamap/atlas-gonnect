@@ -27,17 +27,17 @@ func NewStore(dbType string, databaseUrl string) (*Store, error) {
 	return &Store{db}, nil
 }
 
-func (s *Store) get(clientKey string) (*Tenant, error) {
+func (s *Store) Get(clientKey string) (*Tenant, error) {
 	tenant := Tenant{}
 	LOG.Debugf("Tenant with clientKey %s requested from database", clientKey)
-	if result := s.Database.Where(&Tenant{ClientKey: clientKey}).First(&tenant); result != nil {
+	if result := s.Database.Where(&Tenant{ClientKey: clientKey}).First(&tenant); result.Error != nil {
 		return nil, result.Error
 	}
 	LOG.Debugf("Got Tenant from Database: %+v", tenant)
 	return &tenant, nil
 }
 
-func (s *Store) set(tenant *Tenant) (*Tenant, error) {
+func (s *Store) Set(tenant *Tenant) (*Tenant, error) {
 	LOG.Debugf("Tenant %+v will be inserted or updated in database", tenant)
 	if s.Database.NewRecord(tenant) {
 		LOG.Debugf("Tenant %+v will be inserted in database", tenant)

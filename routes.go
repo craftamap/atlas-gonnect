@@ -42,7 +42,7 @@ func (h InstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
 	}
-	_, err = h.Addon.Store.set(tenant)
+	_, err = h.Addon.Store.Set(tenant)
 	if err != nil {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
@@ -66,7 +66,7 @@ func (h UninstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
 	}
-	_, err = h.Addon.Store.set(tenant)
+	_, err = h.Addon.Store.Set(tenant)
 	if err != nil {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
