@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	gonnect "github.com/craftamap/atlas-gonnect"
+	"github.com/craftamap/atlas-gonnect/util"
 	"github.com/gorilla/context"
 )
 
@@ -18,8 +19,7 @@ type VerifyInstallationMiddleware struct {
 
 func (h VerifyInstallationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Body == http.NoBody {
-		w.WriteHeader(401)
-		h.addon.Logger.Warn("No registration info provided")
+		util.SendError(w, h.addon, 401, "No registration info provided")
 		return
 	}
 
@@ -36,14 +36,12 @@ func (h VerifyInstallationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.R
 
 	baseUrl, ok := responseData["baseUrl"]
 	if !ok {
-		w.WriteHeader(401)
-		h.addon.Logger.Warn("No baseUrl provided for registration info")
+		util.SendError(w, h.addon, 401, "No baseUrl provided for registration info")
 		return
 	}
 
 	clientKey, ok := responseData["clientKey"]
 	if !ok {
-		w.WriteHeader(401)
 		h.addon.Logger.Warnf("No clientKey provided for host %s", baseUrl)
 		return
 	}
@@ -58,9 +56,8 @@ func (h VerifyInstallationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.R
 			if context.Get(req, "clientKey") == clientKey {
 				h.h.ServeHTTP(writer, req)
 			} else {
-				writer.WriteHeader(401)
-				h.addon.Logger.Warn("clientKey in install payload did not match authenticated client")
-				
+				util.SendError(w, h.addon, 401, "clientKey in install payload did not match authenticated client")
+				return
 			}
 		})).ServeHTTP(w, r)
 	}

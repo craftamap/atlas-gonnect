@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
+	gonnect "github.com/craftamap/atlas-gonnect"
 	"github.com/craftamap/atlas-gonnect/middleware"
+	"github.com/craftamap/atlas-gonnect/util"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	gonnect "github.com/craftamap/atlas-gonnect"
 )
 
 type RootHandler struct {
@@ -41,12 +42,12 @@ type InstalledHandler struct {
 func (h InstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tenant, err := gonnect.NewTenantFromReader(r.Body)
 	if err != nil {
-		w.WriteHeader(501) //TODO: figure out right server error response codes
+		util.SendError(w, h.Addon, 500, err.Error())
 		return
 	}
 	_, err = h.Addon.Store.Set(tenant)
 	if err != nil {
-		w.WriteHeader(501) //TODO: figure out right server error response codes
+		util.SendError(w, h.Addon, 500, err.Error())
 		return
 	}
 	h.Addon.Logger.Infof("installed new tenant %s\n", tenant.BaseURL)
@@ -65,12 +66,12 @@ type UninstalledHandler struct {
 func (h UninstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tenant, err := gonnect.NewTenantFromReader(r.Body)
 	if err != nil {
-		w.WriteHeader(501) //TODO: figure out right server error response codes
+		util.SendError(w, h.Addon, 500, err.Error())
 		return
 	}
 	_, err = h.Addon.Store.Set(tenant)
 	if err != nil {
-		w.WriteHeader(501) //TODO: figure out right server error response codes
+		util.SendError(w, h.Addon, 500, err.Error())
 		return
 	}
 	h.Addon.Logger.Infof("uninstalled tenant %s\n", tenant.BaseURL)

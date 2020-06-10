@@ -8,6 +8,7 @@ import (
 
 	gonnect "github.com/craftamap/atlas-gonnect"
 	atlasjwt "github.com/craftamap/atlas-gonnect/atlas-jwt"
+	"github.com/craftamap/atlas-gonnect/util"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -15,8 +16,8 @@ const JWT_PARAM = "jwt"
 const AUTH_HEADER = "authorization"
 
 type AuthenticationMiddleware struct {
-	h     http.Handler
-	addon *gonnect.Addon
+	h       http.Handler
+	addon   *gonnect.Addon
 	skipQsh bool
 }
 
@@ -80,22 +81,19 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	token, ok := extractJwt()
 	if !ok {
-		w.WriteHeader(401)
-		h.addon.Logger.Warn("Could not find auth data on request")
+		util.SendError(w, h.addon, 401, "Could not find auth data on request")
 		return
 	}
 
 	unverifiedClaims, ok := extractUnverifiedClaims(token, nil)
 
 	if !ok {
-		w.WriteHeader(401)
-		h.addon.Logger.Warn("Invalid JWT")
+		util.SendError(w, h.addon, 401, "JWT claim did not contain the issuer (iss) claim")
 		return
 	}
 
 	if unverifiedClaims["iss"] == "" {
-		w.WriteHeader(401)
-		h.addon.Logger.Warn("JWT claim did not contain the issuer (iss) claim")
+		util.SendError(w, h.addon, 401, "JWT claim did not contain the issuer (iss) claim")
 		return
 	}
 
@@ -108,15 +106,13 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	tenant, err := h.addon.Store.Get(clientKey)
 
 	if err != nil {
-		w.WriteHeader(500)
-		h.addon.Logger.Warn("Could not lookup stored client data for clientKey")
+		util.SendError(w, h.addon, 500, "Could not lookup stored client data for clientKey")
 		return
 	}
 
 	secret := tenant.SharedSecret
 	if secret == "" {
-		w.WriteHeader(401)
-		h.addon.Logger.Warn("Could not find JQT sharedSecret in tenant clientKey")
+		util.SendError(w, h.addon, 401, "Could not find JQT sharedSecret in tenant clientKey")
 		return
 	}
 
@@ -131,22 +127,19 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	})
 
 	if err != nil {
-		w.WriteHeader(500)
-		h.addon.Logger.Warn("Could not verify JWT Token")
+		util.SendError(w, h.addon, 500, "Could not verify JWT Token")
 		return
 	}
 
 	err = verifiedToken.Claims.Valid()
 	if err != nil {
-		w.WriteHeader(500)
-		h.addon.Logger.Warn("Could not find verify JWT Claims; Auth request has expired")
+		util.SendError(w, h.addon, 500, "Could not find verify JWT Claims; Auth request has expired")
 		return
 	}
 
 	claims, ok := verifiedToken.Claims.(jwt.MapClaims)
 	if !ok {
-		w.WriteHeader(500)
-		h.addon.Logger.Warn("Could not cast Claims")
+		util.SendError(w, h.addon, 500, "Could not cast Claims")
 		return
 	}
 
@@ -192,8 +185,7 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	tokenString, err := createSessionToken()
 	if err != nil {
 		//TODO: Do we really want to fail here?
-		w.WriteHeader(500)
-		h.addon.Logger.Warnf("Could not create new access token %s", err)
+		util.SendError(w, h.addon, 500, fmt.Sprintf("Could not create new access token %s", err))
 		panic(err)
 	}
 
