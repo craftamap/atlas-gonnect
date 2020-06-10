@@ -17,6 +17,7 @@ const AUTH_HEADER = "authorization"
 type AuthenticationMiddleware struct {
 	h     http.Handler
 	addon *gonnect.Addon
+	skipQsh bool
 }
 
 func extractUnverifiedClaims(tokenStr string, validator jwt.Keyfunc) (jwt.MapClaims, bool) {
@@ -148,8 +149,8 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		h.addon.Logger.Warn("Could not cast Claims")
 		return
 	}
-	//TODO: Replace true with skip QshVerification
-	if true && claims["qsh"] != "" {
+
+	if h.skipQsh && claims["qsh"] != "" {
 		expectedHash := atlasjwt.CreateQueryStringHash(r, false, h.addon.Config.BaseUrl)
 		if claims["qsh"] != expectedHash {
 			// If that didn't verify, it might be a  post/put - check the request body too
@@ -211,8 +212,8 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	requestHandler(h.h).ServeHTTP(w, r)
 }
 
-func NewAuthenticationMiddleware(addon *gonnect.Addon) func(h http.Handler) http.Handler {
+func NewAuthenticationMiddleware(addon *gonnect.Addon, skipQsh bool) func(h http.Handler) http.Handler {
 	return func(handler http.Handler) http.Handler {
-		return AuthenticationMiddleware{handler, addon}
+		return AuthenticationMiddleware{handler, addon, skipQsh}
 	}
 }

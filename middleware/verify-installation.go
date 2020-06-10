@@ -53,7 +53,7 @@ func (h VerifyInstallationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.R
 		// If err is set here, we serve the normal installation
 		h.h.ServeHTTP(w, r)
 	} else {
-		authHandler := NewAuthenticationMiddleware(h.addon)
+		authHandler := NewAuthenticationMiddleware(h.addon, false)
 		authHandler(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 			if context.Get(req, "clientKey") == clientKey {
 				h.h.ServeHTTP(writer, req)
