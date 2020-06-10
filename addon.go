@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"net/http"
 	"path"
 	"runtime"
 	"text/template"
@@ -36,54 +36,48 @@ type Addon struct {
 	CurrentProfile  string
 	Store           *Store
 	AddonDescriptor map[string]interface{}
-	rootFileSystem  *http.FileSystem
 	Key             *string
 	Name            *string
 	Logger          *logrus.Logger
 }
 
-func (addon *Addon) readAddonDescriptor() (err error) {
+func readAddonDescriptor(descriptorReader io.Reader, baseUrl string) (map[string]interface{}, error) {
 	vals := map[string]string{
-		"BaseUrl": addon.Config.BaseUrl,
+		"BaseUrl": baseUrl,
 	}
 
-	content, err := (*addon.rootFileSystem).Open("atlassian-connect.json")
+	temp, err := ioutil.ReadAll(descriptorReader)
 	if err != nil {
-		return err
-	}
-
-	temp, err := ioutil.ReadAll(content)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tmpl, err := template.New("descriptor").Parse(string(temp))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var buffer bytes.Buffer
 
 	err = tmpl.ExecuteTemplate(&buffer, "descriptor", vals)
 	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(buffer.Bytes(), &addon.AddonDescriptor)
-}
-
-func NewAddon(root *http.FileSystem) (*Addon, error) {
-	LOG.Info("Initializing new Addon")
-
-	LOG.Debug("Reading config.json")
-	configContent, err := (*root).Open("config.json")
-	if err != nil {
-		LOG.Errorf("Could not read config: %s\n", err)
 		return nil, err
 	}
 
+	descriptor := map[string]interface{}{}
+
+	json.Unmarshal(buffer.Bytes(), &descriptor)
+	if err != nil {
+		return nil, err
+	}
+
+	return descriptor, nil
+}
+
+func NewAddon(configFile io.Reader, descriptorFile io.Reader) (*Addon, error) {
+	LOG.Info("Initializing new Addon")
+
 	LOG.Debug("Create new config object")
-	config, currentProfile, err := NewConfig(configContent)
+	config, currentProfile, err := NewConfig(configFile)
 	if err != nil {
 		LOG.Errorf("Could not create new config object: %s\n", err)
 		return nil, err
@@ -95,33 +89,32 @@ func NewAddon(root *http.FileSystem) (*Addon, error) {
 		LOG.Errorf("Could not create new store: %s\n", err)
 		return nil, err
 	}
-
-	addon := &Addon{
-		Config:         config,
-		Store:          store,
-		Logger:         LOG,
-		rootFileSystem: root,
-		CurrentProfile: currentProfile,
-	}
-
 	LOG.Debug("Reading AddonDescriptor")
-	err = addon.readAddonDescriptor()
+	addonDescriptor, err := readAddonDescriptor(descriptorFile, config.BaseUrl)
 	if err != nil {
 		LOG.Errorf("Could not read AddonDescriptor: %s\n", err)
-		return addon, err
+		return nil, err
 	}
 
-	name, ok := addon.AddonDescriptor["name"].(string)
+	name, ok := addonDescriptor["name"].(string)
 	if !ok {
 		return nil, errors.New("name could not be read from AddonDescriptor")
 	}
-	addon.Name = &name
 
-	key, ok := addon.AddonDescriptor["key"].(string)
+	key, ok := addonDescriptor["key"].(string)
 	if !ok {
 		return nil, errors.New("name could not be read from AddonDescriptor")
 	}
-	addon.Key = &key
+
+	addon := &Addon{
+		Config:          config,
+		Store:           store,
+		Logger:          LOG,
+		CurrentProfile:  currentProfile,
+		AddonDescriptor: addonDescriptor,
+		Name:            &name,
+		Key:             &key,
+	}
 
 	LOG.Info("Addon successfully initialized!")
 	return addon, nil
