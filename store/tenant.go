@@ -1,4 +1,4 @@
-package gonnect
+package store
 
 import (
 	"encoding/json"
@@ -17,7 +17,7 @@ type Tenant struct {
 	AddonInstalled bool   `json:"-" gorm:"type:bit;NOT NULL"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
-	EventType		string `json:"eventType" gorm:"-"`
+	EventType      string `json:"eventType" gorm:"-"`
 }
 
 func NewTenantFromReader(r io.Reader) (*Tenant, error) {

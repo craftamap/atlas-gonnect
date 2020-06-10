@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	gonnect "github.com/craftamap/atlas-gonnect"
+	"github.com/craftamap/atlas-gonnect/store"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -17,7 +17,7 @@ const JWT_CLAIM_PREFIX = "urn:atlassian:connect"
 const AUTHORIZATION_SERVER_URL = "https://oauth-2-authorization-server.services.atlassian.com"
 const GRANT_TYPE = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 
-func createTokenForAccountId(tenant *gonnect.Tenant, accountId string) (string, error) {
+func createTokenForAccountId(tenant *store.Tenant, accountId string) (string, error) {
 	subject := JWT_CLAIM_PREFIX + ":useraccountid:" + accountId
 	issuer := JWT_CLAIM_PREFIX + ":clientid:" + tenant.OauthClientId
 
@@ -44,7 +44,7 @@ func createTokenForAccountId(tenant *gonnect.Tenant, accountId string) (string, 
 	return signedToken, nil
 }
 
-func GetAccessToken(tenant *gonnect.Tenant, userAccountId string, scopes []string) (string, error) {
+func GetAccessToken(tenant *store.Tenant, userAccountId string, scopes []string) (string, error) {
 	// TODO: We should probably use an oauth2 library - for now though, lets keep it "simple"
 	// TODO: Add Caching
 

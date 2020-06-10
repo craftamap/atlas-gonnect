@@ -1,13 +1,35 @@
-package gonnect
+package store
 
 import (
+	"fmt"
+	"path"
+	"runtime"
+
 	"github.com/jinzhu/gorm"
+	"github.com/sirupsen/logrus"
 	//import _ "github.com/jinzhu/gorm/dialects/mysql"
 	//import _ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 //import _ "github.com/jinzhu/gorm/dialects/mssql"
+
+var LOG = logrus.New()
+
+func init() {
+	// TODO: We should propably give the programmers more control about the logging
+	// How?
+
+	LOG.SetReportCaller(true)
+	LOG.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			filename := path.Base(f.File)
+			return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
+		},
+	})
+	// LOG.SetLevel(logrus.DebugLevel)
+}
 
 type Store struct {
 	Database *gorm.DB

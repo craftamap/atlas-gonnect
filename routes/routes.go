@@ -6,6 +6,7 @@ import (
 
 	gonnect "github.com/craftamap/atlas-gonnect"
 	"github.com/craftamap/atlas-gonnect/middleware"
+	"github.com/craftamap/atlas-gonnect/store"
 	"github.com/craftamap/atlas-gonnect/util"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -40,7 +41,7 @@ type InstalledHandler struct {
 }
 
 func (h InstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tenant, err := gonnect.NewTenantFromReader(r.Body)
+	tenant, err := store.NewTenantFromReader(r.Body)
 	if err != nil {
 		util.SendError(w, h.Addon, 500, err.Error())
 		return
@@ -64,7 +65,7 @@ type UninstalledHandler struct {
 }
 
 func (h UninstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tenant, err := gonnect.NewTenantFromReader(r.Body)
+	tenant, err := store.NewTenantFromReader(r.Body)
 	if err != nil {
 		util.SendError(w, h.Addon, 500, err.Error())
 		return
