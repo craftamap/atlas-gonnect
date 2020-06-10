@@ -7,11 +7,12 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
-	//import _ "github.com/jinzhu/gorm/dialects/mysql"
-	//import _ "github.com/jinzhu/gorm/dialects/postgres"
+
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
+//import _ "github.com/jinzhu/gorm/dialects/mysql"
+//import _ "github.com/jinzhu/gorm/dialects/postgres"
 //import _ "github.com/jinzhu/gorm/dialects/mssql"
 
 var LOG = logrus.New()
@@ -35,7 +36,7 @@ type Store struct {
 	Database *gorm.DB
 }
 
-func NewStore(dbType string, databaseUrl string) (*Store, error) {
+func New(dbType string, databaseUrl string) (*Store, error) {
 	LOG.Info("Initializing Database Connection")
 	db, err := gorm.Open(dbType, databaseUrl)
 	if err != nil {

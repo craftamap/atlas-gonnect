@@ -85,7 +85,7 @@ func NewAddon(configFile io.Reader, descriptorFile io.Reader) (*Addon, error) {
 	}
 
 	LOG.Debug("Creating new store")
-	store, err := store.NewStore(config.Store.Type, config.Store.DatabaseUrl)
+	store, err := store.New(config.Store.Type, config.Store.DatabaseUrl)
 	if err != nil {
 		LOG.Errorf("Could not create new store: %s\n", err)
 		return nil, err
