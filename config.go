@@ -8,12 +8,11 @@ import (
 )
 
 type Config struct {
-	CurrentEnvironment string
-	Development        EnvironmentConfiguration
-	Production         EnvironmentConfiguration
+	CurrentProfile string
+	Profiles       map[string]Profile
 }
 
-type EnvironmentConfiguration struct {
+type Profile struct {
 	Port            int
 	BaseUrl         string
 	Store           StoreConfiguration
@@ -25,36 +24,33 @@ type StoreConfiguration struct {
 	DatabaseUrl string
 }
 
-func NewConfig(configFile io.Reader) (*EnvironmentConfiguration, error) {
+func NewConfig(configFile io.Reader) (*Profile, string, error) {
 	// TODO: I dont like this approach rn, we should at least store the
 	// CurrentEnvironment so the programmers can interact with
 	LOG.Info("Initializing Configuration")
 
 	runtimeViper := viper.New()
-	runtimeViper.SetDefault("CurrentEnvironment", "development")
-	runtimeViper.SetEnvPrefix("gonnect")
-	runtimeViper.BindEnv("CurrentEnvironment")
+	runtimeViper.SetDefault("CurrentProfile", "dev")
+	runtimeViper.BindEnv("CurrentProfile", "GONNECT_PROFILE")
 	runtimeViper.SetConfigType("json")
 	config := &Config{}
 
 	err := runtimeViper.ReadConfig(configFile)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	err = runtimeViper.Unmarshal(config)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	if config.CurrentEnvironment == "development" {
-		LOG.Info("development configuration initialized")
-		config.Development.EnvironmentName = "development"
-		return &config.Development, nil
-	} else if config.CurrentEnvironment == "production" {
-		LOG.Info("configuration initialized")
-		config.Production.EnvironmentName = "production"
-		return &config.Production, nil
+	if config.CurrentProfile == "" {
+		return nil, "", errors.New("No Profile selected; Set CurrentProfile in the config file or set GONNECT_PROFILE")
+	}
+
+	if profile, ok := config.Profiles[config.CurrentProfile]; !ok {
+		return nil, "", errors.New("Profile not found!")
 	} else {
-		return nil, errors.New("No Environment set")
+		return &profile, config.CurrentProfile, nil
 	}
 }

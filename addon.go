@@ -32,7 +32,8 @@ func init() {
 }
 
 type Addon struct {
-	Config          *EnvironmentConfiguration
+	Config          *Profile
+	CurrentProfile  string
 	Store           *Store
 	AddonDescriptor map[string]interface{}
 	rootFileSystem  *http.FileSystem
@@ -71,7 +72,6 @@ func (addon *Addon) readAddonDescriptor() (err error) {
 	return json.Unmarshal(buffer.Bytes(), &addon.AddonDescriptor)
 }
 
-
 func NewAddon(root *http.FileSystem) (*Addon, error) {
 	LOG.Info("Initializing new Addon")
 
@@ -83,7 +83,7 @@ func NewAddon(root *http.FileSystem) (*Addon, error) {
 	}
 
 	LOG.Debug("Create new config object")
-	config, err := NewConfig(configContent)
+	config, currentProfile, err := NewConfig(configContent)
 	if err != nil {
 		LOG.Errorf("Could not create new config object: %s\n", err)
 		return nil, err
@@ -101,6 +101,7 @@ func NewAddon(root *http.FileSystem) (*Addon, error) {
 		Store:          store,
 		Logger:         LOG,
 		rootFileSystem: root,
+		CurrentProfile: currentProfile,
 	}
 
 	LOG.Debug("Reading AddonDescriptor")
