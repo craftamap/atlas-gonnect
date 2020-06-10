@@ -1,11 +1,13 @@
-package gonnect
+package routes
 
 import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/craftamap/atlas-gonnect/middleware"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	gonnect "github.com/craftamap/atlas-gonnect"
 )
 
 type RootHandler struct {
@@ -20,7 +22,7 @@ func NewRootHandler() http.Handler {
 }
 
 type AtlassianConnectHandler struct {
-	Addon *Addon
+	Addon *gonnect.Addon
 }
 
 func (h AtlassianConnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -28,16 +30,16 @@ func (h AtlassianConnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(h.Addon.AddonDescriptor)
 }
 
-func NewAtlassianConnectHandler(addon *Addon) http.Handler {
+func NewAtlassianConnectHandler(addon *gonnect.Addon) http.Handler {
 	return AtlassianConnectHandler{addon}
 }
 
 type InstalledHandler struct {
-	Addon *Addon
+	Addon *gonnect.Addon
 }
 
 func (h InstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tenant, err := NewTenantFromReader(r.Body)
+	tenant, err := gonnect.NewTenantFromReader(r.Body)
 	if err != nil {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
@@ -47,21 +49,21 @@ func (h InstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
 	}
-	LOG.Infof("installed new tenant %s\n", tenant.BaseURL)
+	h.Addon.Logger.Infof("installed new tenant %s\n", tenant.BaseURL)
 	//TODO: Figure out what to response - like with my girlfriend <3
 	w.Write([]byte("OK"))
 }
 
-func NewInstalledHandler(addon *Addon) http.Handler {
+func NewInstalledHandler(addon *gonnect.Addon) http.Handler {
 	return InstalledHandler{addon}
 }
 
 type UninstalledHandler struct {
-	Addon *Addon
+	Addon *gonnect.Addon
 }
 
 func (h UninstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tenant, err := NewTenantFromReader(r.Body)
+	tenant, err := gonnect.NewTenantFromReader(r.Body)
 	if err != nil {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
@@ -71,18 +73,18 @@ func (h UninstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(501) //TODO: figure out right server error response codes
 		return
 	}
-	LOG.Infof("uninstalled tenant %s\n", tenant.BaseURL)
+	h.Addon.Logger.Infof("uninstalled tenant %s\n", tenant.BaseURL)
 	//TODO: Figure out what to response
 	w.Write([]byte("OK"))
 }
 
-func NewUninstalledHandler(addon *Addon) http.Handler {
+func NewUninstalledHandler(addon *gonnect.Addon) http.Handler {
 	return InstalledHandler{addon}
 }
 
-func RegisterRoutes(addon *Addon, mux *mux.Router) {
+func RegisterRoutes(addon *gonnect.Addon, mux *mux.Router) {
 	mux.Handle("/", NewRootHandler())
 	mux.Handle("/atlassian-connect.json", NewAtlassianConnectHandler(addon))
-	mux.Handle("/installed", handlers.MethodHandler{"POST": NewInstalledHandler(addon)})
+	mux.Handle("/installed", handlers.MethodHandler{"POST": middleware.NewVerifyInstallationMiddleware(addon)(NewInstalledHandler(addon))})
 	mux.Handle("/uninstalled", handlers.MethodHandler{"POST": NewUninstalledHandler(addon)})
 }

@@ -46,6 +46,8 @@ func createTokenForAccountId(tenant *gonnect.Tenant, accountId string) (string, 
 
 func GetAccessToken(tenant *gonnect.Tenant, userAccountId string, scopes []string) (string, error) {
 	// TODO: We should probably use an oauth2 library - for now though, lets keep it "simple"
+	// TODO: Add Caching
+
 	jwtToken, err := createTokenForAccountId(tenant, userAccountId)
 	if err != nil {
 		return "", err
