@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	gonnect "github.com/craftamap/atlas-gonnect"
+	"github.com/craftamap/atlas-gonnect/hostrequest"
 	"github.com/gorilla/context"
 )
 
@@ -66,14 +67,16 @@ func (h RequestMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Since this poc is for confluence only, this should be valid, for now
 	context.Set(r, "hostBaseUrl", getHostBaseUrlFromQueryParams())
 
-	if(len(h.verifiedParams) > 0){
-		context.Set(r, "userAccountId", h.verifiedParams["userAccountId"]);
-		context.Set(r, "clientKey", h.verifiedParams["clientKey"]);
-		context.Set(r, "hostBaseUrl", h.verifiedParams["hostBaseUrl"]);
-		context.Set(r, "token", h.verifiedParams["token"]);
+	if len(h.verifiedParams) > 0 {
+		context.Set(r, "userAccountId", h.verifiedParams["userAccountId"])
+		context.Set(r, "clientKey", h.verifiedParams["clientKey"])
+		context.Set(r, "hostBaseUrl", h.verifiedParams["hostBaseUrl"])
+		context.Set(r, "token", h.verifiedParams["token"])
+
+		context.Set(r, "httpClient", &hostrequest.HostRequest{Addon: h.addon, ClientKey: h.verifiedParams["clientKey"]})
 	}
 
-	context.Set(r, "baseUrl", getHostBaseUrlFromQueryParams())
+	context.Set(r, "hostUrl", getHostBaseUrlFromQueryParams())
 	context.Set(r, "hostStylesheetUrl",
 		getHostResourceUrl(true, context.Get(r, "hostBaseUrl").(string), "css"))
 	context.Set(r, "hostScriptUrl", "https://connect-cdn.atl-paas.net/all.js")

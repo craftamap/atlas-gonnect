@@ -143,7 +143,7 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if h.skipQsh && claims["qsh"] != "" {
+	if !h.skipQsh && claims["qsh"] != "" {
 		expectedHash := atlasjwt.CreateQueryStringHash(r, false, h.addon.Config.BaseUrl)
 		if claims["qsh"] != expectedHash {
 			// If that didn't verify, it might be a  post/put - check the request body too
@@ -184,16 +184,21 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	tokenString, err := createSessionToken()
 	if err != nil {
-		//TODO: Do we really want to fail here?
 		util.SendError(w, h.addon, 500, fmt.Sprintf("Could not create new access token %s", err))
-		panic(err)
+		return
 	}
 
 	oldVerClaims := verifiedToken.Claims.(jwt.MapClaims)
 
+	tenant, err = h.addon.Store.Get(clientKey)
+	if err != nil {
+		util.SendError(w, h.addon, 500, fmt.Sprintf("Could not create new access token %s", err))
+		return
+	}
+
 	verifiedParams := map[string]string{
 		"clientKey":   clientKey,
-		"hostBaseUrl": h.addon.Config.BaseUrl,
+		"hostBaseUrl": tenant.BaseURL,
 		"token":       tokenString,
 		// TODO: We may have to add the context workaround instead of just using sub as userAccountId, but lets ignore it for now
 		"userAccountId": oldVerClaims["sub"].(string),
