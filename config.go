@@ -7,16 +7,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+var ErrConfigNoProfileSelected = errors.New("No Profile selected; Set CurrentProfile in the config file or set GONNECT_PROFILE")
+var ErrConfigProfileNotFound = errors.New("Profile not found!")
+
 type Config struct {
 	CurrentProfile string
 	Profiles       map[string]Profile
 }
 
 type Profile struct {
-	Port            int
-	BaseUrl         string
-	Store           StoreConfiguration
-	EnvironmentName string
+	Port    int
+	BaseUrl string
+	Store   StoreConfiguration
 }
 
 type StoreConfiguration struct {
@@ -25,8 +27,6 @@ type StoreConfiguration struct {
 }
 
 func NewConfig(configFile io.Reader) (*Profile, string, error) {
-	// TODO: I dont like this approach rn, we should at least store the
-	// CurrentEnvironment so the programmers can interact with
 	LOG.Info("Initializing Configuration")
 
 	runtimeViper := viper.New()
@@ -45,11 +45,11 @@ func NewConfig(configFile io.Reader) (*Profile, string, error) {
 	}
 
 	if config.CurrentProfile == "" {
-		return nil, "", errors.New("No Profile selected; Set CurrentProfile in the config file or set GONNECT_PROFILE")
+		return nil, "", ErrConfigNoProfileSelected
 	}
 
 	if profile, ok := config.Profiles[config.CurrentProfile]; !ok {
-		return nil, "", errors.New("Profile not found!")
+		return nil, "", ErrConfigProfileNotFound
 	} else {
 		return &profile, config.CurrentProfile, nil
 	}
