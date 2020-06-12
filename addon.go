@@ -20,7 +20,6 @@ var LOG = logrus.New()
 func init() {
 	// TODO: We should propably give the programmers more control about the logging
 	// How?
-
 	LOG.SetReportCaller(true)
 	LOG.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
@@ -29,7 +28,6 @@ func init() {
 			return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
 		},
 	})
-	// LOG.SetLevel(logrus.DebugLevel)
 }
 
 type Addon struct {
