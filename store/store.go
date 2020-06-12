@@ -62,14 +62,18 @@ func (s *Store) Get(clientKey string) (*Tenant, error) {
 
 func (s *Store) Set(tenant *Tenant) (*Tenant, error) {
 	LOG.Debugf("Tenant %+v will be inserted or updated in database", tenant)
-	if s.Database.NewRecord(tenant) {
+
+	optionalExistingRecord := Tenant{}
+	if result := s.Database.Where(&Tenant{ClientKey: tenant.ClientKey}).First(&optionalExistingRecord); result.Error != nil {
+		// If no entry matching the clientKey exists, insert the tenant,
+		// otherwise update the tenant
 		LOG.Debugf("Tenant %+v will be inserted in database", tenant)
 		if result := s.Database.Create(tenant); result.Error != nil {
 			return nil, result.Error
 		}
 	} else {
 		LOG.Debugf("Tenant %+v will be updated in database", tenant)
-		if result := s.Database.Save(tenant); result.Error != nil {
+		if result := s.Database.Model(tenant).Where(&Tenant{ClientKey: tenant.ClientKey}).Updates(tenant).Update("AddonInstalled", tenant.AddonInstalled); result.Error != nil {
 			return nil, result.Error
 		}
 	}

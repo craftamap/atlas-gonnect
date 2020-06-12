@@ -28,7 +28,7 @@ func NewTenantFromReader(r io.Reader) (*Tenant, error) {
 	}
 	if tenant.EventType == "installed" {
 		tenant.AddonInstalled = true
-	} else if tenant.EventType == "installed" {
+	} else if tenant.EventType == "uninstalled" {
 		tenant.AddonInstalled = false
 	}
 	LOG.Debugf("Created new Tenant instance from reader; tenant: %+v\n", *tenant)

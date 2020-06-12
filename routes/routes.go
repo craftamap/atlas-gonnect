@@ -81,12 +81,16 @@ func (h UninstalledHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewUninstalledHandler(addon *gonnect.Addon) http.Handler {
-	return InstalledHandler{addon}
+	return UninstalledHandler{addon}
 }
 
 func RegisterRoutes(addon *gonnect.Addon, mux *mux.Router) {
 	mux.Handle("/", NewRootHandler())
 	mux.Handle("/atlassian-connect.json", NewAtlassianConnectHandler(addon))
-	mux.Handle("/installed", handlers.MethodHandler{"POST": middleware.NewVerifyInstallationMiddleware(addon)(NewInstalledHandler(addon))})
-	mux.Handle("/uninstalled", handlers.MethodHandler{"POST": NewUninstalledHandler(addon)})
+	mux.Handle("/installed", handlers.MethodHandler{
+		"POST": middleware.NewVerifyInstallationMiddleware(addon)(NewInstalledHandler(addon)),
+	})
+	mux.Handle("/uninstalled", handlers.MethodHandler{
+		"POST": middleware.NewAuthenticationMiddleware(addon, false)(NewUninstalledHandler(addon)),
+	})
 }
