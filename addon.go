@@ -102,7 +102,7 @@ func NewAddon(configFile io.Reader, descriptorFile io.Reader) (*Addon, error) {
 
 	key, ok := addonDescriptor["key"].(string)
 	if !ok {
-		return nil, errors.New("name could not be read from AddonDescriptor")
+		return nil, errors.New("key could not be read from AddonDescriptor")
 	}
 
 	addon := &Addon{
