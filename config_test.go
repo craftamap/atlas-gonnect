@@ -54,17 +54,17 @@ func TestNewConfig(t *testing.T) {
 		profile, profilename, err := NewConfig(testCase.Config)
 		if err != testCase.err {
 			t.Errorf("Expected error to be %s, but got %s", testCase.err, err)
-			return
+			continue
 		}
 
 		if profilename != testCase.profilename {
 			t.Errorf("Expected profilename to be %s, but got %s", testCase.profilename, profilename)
-			return
+			continue
 		}
 
 		if profile != nil && *profile != *testCase.Profile {
 			t.Errorf("Expected profile to be %+v, but got %+v", testCase.Profile, profile)
-			return
+			continue
 		}
 
 	}

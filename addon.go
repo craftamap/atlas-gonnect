@@ -64,7 +64,7 @@ func readAddonDescriptor(descriptorReader io.Reader, baseUrl string) (map[string
 
 	descriptor := map[string]interface{}{}
 
-	json.Unmarshal(buffer.Bytes(), &descriptor)
+	err = json.Unmarshal(buffer.Bytes(), &descriptor)
 	if err != nil {
 		return nil, err
 	}
