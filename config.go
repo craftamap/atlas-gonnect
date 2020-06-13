@@ -11,14 +11,16 @@ var ErrConfigNoProfileSelected = errors.New("No Profile selected; Set CurrentPro
 var ErrConfigProfileNotFound = errors.New("Profile not found!")
 
 type Config struct {
+	Product        string
 	CurrentProfile string
 	Profiles       map[string]Profile
 }
 
 type Profile struct {
-	Port    int
-	BaseUrl string
-	Store   StoreConfiguration
+	Port               int
+	BaseUrl            string
+	Store              StoreConfiguration
+	ValidateDescriptor bool
 }
 
 type StoreConfiguration struct {
@@ -26,31 +28,32 @@ type StoreConfiguration struct {
 	DatabaseUrl string
 }
 
-func NewConfig(configFile io.Reader) (*Profile, string, error) {
+func NewConfig(configFile io.Reader) (*Profile, string, string, error) {
 	LOG.Info("Initializing Configuration")
 
 	runtimeViper := viper.New()
 	runtimeViper.SetDefault("CurrentProfile", "dev")
+	runtimeViper.SetDefault("Product", "jira")
 	runtimeViper.BindEnv("CurrentProfile", "GONNECT_PROFILE")
 	runtimeViper.SetConfigType("json")
 	config := &Config{}
 
 	err := runtimeViper.ReadConfig(configFile)
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 	err = runtimeViper.Unmarshal(config)
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 
 	if config.CurrentProfile == "" {
-		return nil, "", ErrConfigNoProfileSelected
+		return nil, "", "", ErrConfigNoProfileSelected
 	}
 
 	if profile, ok := config.Profiles[config.CurrentProfile]; !ok {
-		return nil, "", ErrConfigProfileNotFound
+		return nil, "", "", ErrConfigProfileNotFound
 	} else {
-		return &profile, config.CurrentProfile, nil
+		return &profile, config.CurrentProfile, config.Product, nil
 	}
 }
