@@ -3,7 +3,6 @@ package atlasjwt
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sort"
@@ -50,13 +49,9 @@ func canonicalizeQueryString(req *http.Request, checkBodyForParam bool) string {
 	queryParams := req.URL.Query()
 
 	if checkBodyForParam && len(queryParams) == 0 && (strings.ToUpper(req.Method) == "POST" || strings.ToUpper(req.Method) == "PUT") {
-		bodyReader, err := req.GetBody()
-		if err == nil {
-			bodyContent, err := ioutil.ReadAll(bodyReader)
-			if err == nil {
-				queryParams, _ = url.ParseQuery(string(bodyContent))
-			}
-		}
+		// TODO: This could return errors...
+		req.ParseForm()
+		queryParams = req.PostForm
 	}
 
 	sortedQueryStrings := make([]string, 0)

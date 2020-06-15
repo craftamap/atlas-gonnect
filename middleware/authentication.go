@@ -80,6 +80,7 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 
 	token, ok := extractJwt()
+	h.addon.Logger.Print(r.URL.String())
 	if !ok {
 		util.SendError(w, h.addon, 401, "Could not find auth data on request")
 		return
@@ -147,9 +148,10 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		expectedHash := atlasjwt.CreateQueryStringHash(r, false, h.addon.Config.BaseUrl)
 		if claims["qsh"] != expectedHash {
 			// If that didn't verify, it might be a  post/put - check the request body too
-			expectedHash := atlasjwt.CreateQueryStringHash(r, false, h.addon.Config.BaseUrl)
+			expectedHash := atlasjwt.CreateQueryStringHash(r, true, h.addon.Config.BaseUrl)
 			if claims["qsh"] != expectedHash {
-				h.addon.Logger.Errorf("Auth failure: Query hash mismatch: Received %s but calculated %s", claims["qsh"], expectedHash)
+				util.SendError(w, h.addon, 401, fmt.Sprintf("Auth failure: Query hash mismatch: Received %s but calculated %s", claims["qsh"], expectedHash))
+				return
 			}
 		}
 	}
