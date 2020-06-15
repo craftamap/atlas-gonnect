@@ -21,6 +21,7 @@ type Tenant struct {
 }
 
 func NewTenantFromReader(r io.Reader) (*Tenant, error) {
+	//TODO: Check for clientKey, any tenant must have an clientKey
 	tenant := &Tenant{}
 	err := json.NewDecoder(r).Decode(tenant)
 	if err != nil {
