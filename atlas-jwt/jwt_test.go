@@ -38,6 +38,10 @@ func TestCreateQueryStringHash(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+
+		// We need to set the Content-Type-Header to x-www-form-urlencoded:
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
 		qsh := CreateQueryStringHash(req, tCase.checkForBodyParam, tCase.baseUrl)
 		if tCase.expectedHash != qsh {
 			t.Errorf("did not match expected value: expected %s, got %s ;\n  Testcase: %+v", tCase.expectedHash, qsh, tCase)

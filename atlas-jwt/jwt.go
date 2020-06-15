@@ -49,9 +49,10 @@ func canonicalizeQueryString(req *http.Request, checkBodyForParam bool) string {
 	queryParams := req.URL.Query()
 
 	if checkBodyForParam && len(queryParams) == 0 && (strings.ToUpper(req.Method) == "POST" || strings.ToUpper(req.Method) == "PUT") {
-		// TODO: This could return errors...
-		req.ParseForm()
-		queryParams = req.PostForm
+		err := req.ParseForm()
+		if err == nil {
+			queryParams = req.PostForm
+		}
 	}
 
 	sortedQueryStrings := make([]string, 0)
