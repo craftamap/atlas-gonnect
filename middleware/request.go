@@ -80,6 +80,7 @@ func (h RequestMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx = context.WithValue(ctx, "hostUrl", getHostBaseUrlFromQueryParams())
 	ctx = context.WithValue(ctx, "hostStylesheetUrl",
+		// TODO: if dev...
 		getHostResourceUrl(true, ctx.Value("hostBaseUrl").(string), "css"))
 	ctx = context.WithValue(ctx, "hostScriptUrl", "https://connect-cdn.atl-paas.net/all.js")
 
