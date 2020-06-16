@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -52,10 +53,10 @@ func (h VerifyInstallationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.R
 	} else {
 		authHandler := NewAuthenticationMiddleware(h.addon, false)
 		authHandler(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-			if r.Context().Value("clientKey") == clientKey {
+			if req.Context().Value("clientKey") == clientKey {
 				h.h.ServeHTTP(writer, req)
 			} else {
-				util.SendError(w, h.addon, 401, "clientKey in install payload did not match authenticated client")
+				util.SendError(w, h.addon, 401, fmt.Sprintf("clientKey in install payload did not match authenticated client; payload: %s, auth: %s", clientKey, r.Context().Value("clientKey")))
 				return
 			}
 		})).ServeHTTP(w, r)
