@@ -20,41 +20,41 @@ which serves as router for our webserver.
 A minimal example looks like this:
 
 ```go
-	// We need the config as well as the atlassian-connect-descriptor as an io.Reader
-	config, err := os.Open("config.json")
-	if err != nil {
-		panic(err)
-	}
-	descriptor, err := os.Open("atlassian-connect.json")
-	if err != nil {
-		panic(err)
-	}
+// We need the config as well as the atlassian-connect-descriptor as an io.Reader
+config, err := os.Open("config.json")
+if err != nil {
+        panic(err)
+}
+descriptor, err := os.Open("atlassian-connect.json")
+if err != nil {
+        panic(err)
+}
 
-	// Now, we can initialize the addon.
-	addon, err := gonnect.NewAddon(config, descriptor)
+// Now, we can initialize the addon.
+addon, err := gonnect.NewAddon(config, descriptor)
 
-	// We create a new mux-router
-	router := mux.NewRouter()
+// We create a new mux-router
+router := mux.NewRouter()
 
-	// And insert the default request middleware - this middleware should be used on
-	// every request/route going to the server
-	router.Use(middleware.NewRequestMiddleware(addon, make(map[string]string)))
+// And insert the default request middleware - this middleware should be used on
+// every request/route going to the server
+router.Use(middleware.NewRequestMiddleware(addon, make(map[string]string)))
 
-	// Register the default routes of atlas-gonnect; note that routes is the package
-	// github.com/craftamap/atlas-gonnect/routes
-	routes.RegisterRoutes(addon, router)
+// Register the default routes of atlas-gonnect; note that routes is the package
+// github.com/craftamap/atlas-gonnect/routes
+routes.RegisterRoutes(addon, router)
 
-	// To register an route secured by JWT Authentification, use the AuthentificationMiddleware
-	router.Handle(
-		"/hello-world",
-		// note that middleware is the package github.com/craftamap/atlas-gonnect/middleware
-		middleware.NewAuthenticationMiddleware(addon, false)(
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				// Do stuff here
-			}),
-		),
-	)
-	http.ListenAndServe(":"+strconv.Itoa(addon.Config.Port), router)
+// To register an route secured by JWT Authentification, use the AuthentificationMiddleware
+router.Handle(
+        "/hello-world",
+        // note that middleware is the package github.com/craftamap/atlas-gonnect/middleware
+        middleware.NewAuthenticationMiddleware(addon, false)(
+                http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                        // Do stuff here
+                }),
+        ),
+)
+http.ListenAndServe(":"+strconv.Itoa(addon.Config.Port), router)
 ```
 
 
@@ -84,6 +84,35 @@ If the authentication-middleware was used (and successful), the following keys a
 | clientKey     	| the clientKey of the atlassian tenant / host                                        	| string                   	|
 | httpClient    	| A HostRequestHttpClient used for request to the confluence/jira instance; see below 	| *hostrequest.HostRequest 	|
 
+Usage:
+
+```
+hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(*hostrequest.HostRequest)
+if !ok {
+    ...
+}
+```
+
+
+### HostRequest
+
+`atlas-gonnect` also to do requests to the confluence/jira instance. You can either act as addon, but it also supports user impersonation.
+
+In a request, you can get the httpClient from the context. Then, you create a new request using `http.NewRequest` and modify it, if you want to.
+
+Then, you pass it into the httpClient, using `AsAddon(request)` or `AsUser(request, userAccountId)`. The credentials as well the hostBaseUrl will be added.
+
+Use the `http.DefaultClient` to execute an request.
+
+```
+httpClient := r.Context().Value("httpClient").(*hostrequest.HostRequest)
+request, _ := http.NewRequest("GET", "/rest/api/content", http.NoBody)
+_, err := httpClient.AsAddon(request)
+if err == nil {
+        response, _ := http.DefaultClient.Do(request)
+        log.Println(response)
+}
+```
 
 
 ## Author
