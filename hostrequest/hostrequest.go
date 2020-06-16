@@ -12,7 +12,6 @@ import (
 	atlasoauth2 "github.com/craftamap/atlas-gonnect/atlas-oauth2"
 	"github.com/craftamap/atlas-gonnect/store"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/context"
 )
 
 type HostRequest struct {
@@ -22,8 +21,8 @@ type HostRequest struct {
 }
 
 func FromRequest(addon *gonnect.Addon, r *http.Request) (*HostRequest, error) {
-	ihttpClient, ok := context.GetOk(r, "httpClient")
-	if !ok {
+	ihttpClient := r.Context().Value("httpClient")
+	if ihttpClient == nil {
 		return nil, errors.New("Could not get httpClient from request context; no httpClient")
 	}
 	httpClient, ok := ihttpClient.(*HostRequest)

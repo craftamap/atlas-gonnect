@@ -9,7 +9,6 @@ import (
 
 	gonnect "github.com/craftamap/atlas-gonnect"
 	"github.com/craftamap/atlas-gonnect/util"
-	"github.com/gorilla/context"
 )
 
 type VerifyInstallationMiddleware struct {
@@ -53,7 +52,7 @@ func (h VerifyInstallationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.R
 	} else {
 		authHandler := NewAuthenticationMiddleware(h.addon, false)
 		authHandler(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-			if context.Get(req, "clientKey") == clientKey {
+			if r.Context().Value("clientKey") == clientKey {
 				h.h.ServeHTTP(writer, req)
 			} else {
 				util.SendError(w, h.addon, 401, "clientKey in install payload did not match authenticated client")

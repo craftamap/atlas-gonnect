@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"context"
+
 	gonnect "github.com/craftamap/atlas-gonnect"
 	"github.com/craftamap/atlas-gonnect/hostrequest"
-	"github.com/gorilla/context"
 )
 
 type RequestMiddleware struct {
@@ -57,29 +58,32 @@ func (h RequestMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.addon.Logger.Debug("Setting Context Variables in Request Middleware")
-	//TODO: Better Logging in this middleware
-	context.Set(r, "title", *h.addon.Name)
-	context.Set(r, "addonKey", *h.addon.Key)
-	context.Set(r, "license", getParam("lic"))
-	context.Set(r, "localBaseUrl", h.addon.Config.BaseUrl)
+	// TODO: Better Logging in this middleware
+	// TODO: context does not like using string as a key - we should do this
+	ctx := context.WithValue(r.Context(), "title", *h.addon.Name)
+	ctx = context.WithValue(ctx, "addonKey", *h.addon.Key)
+	ctx = context.WithValue(ctx, "localBaseUrl", h.addon.Config.BaseUrl)
+	ctx = context.WithValue(ctx, "license", getParam("lic"))
 
 	// if missing here: if isJira || isConfluence
 	// Since this poc is for confluence only, this should be valid, for now
-	context.Set(r, "hostBaseUrl", getHostBaseUrlFromQueryParams())
+	ctx = context.WithValue(ctx, "hostBaseUrl", getHostBaseUrlFromQueryParams())
 
 	if len(h.verifiedParams) > 0 {
-		context.Set(r, "userAccountId", h.verifiedParams["userAccountId"])
-		context.Set(r, "clientKey", h.verifiedParams["clientKey"])
-		context.Set(r, "hostBaseUrl", h.verifiedParams["hostBaseUrl"])
-		context.Set(r, "token", h.verifiedParams["token"])
+		ctx = context.WithValue(ctx, "userAccountId", h.verifiedParams["userAccountId"])
+		ctx = context.WithValue(ctx, "clientKey", h.verifiedParams["clientKey"])
+		ctx = context.WithValue(ctx, "hostBaseUrl", h.verifiedParams["hostBaseUrl"])
+		ctx = context.WithValue(ctx, "token", h.verifiedParams["token"])
 
-		context.Set(r, "httpClient", &hostrequest.HostRequest{Addon: h.addon, ClientKey: h.verifiedParams["clientKey"]})
+		ctx = context.WithValue(ctx, "httpClient", &hostrequest.HostRequest{Addon: h.addon, ClientKey: h.verifiedParams["clientKey"]})
 	}
 
-	context.Set(r, "hostUrl", getHostBaseUrlFromQueryParams())
-	context.Set(r, "hostStylesheetUrl",
-		getHostResourceUrl(true, context.Get(r, "hostBaseUrl").(string), "css"))
-	context.Set(r, "hostScriptUrl", "https://connect-cdn.atl-paas.net/all.js")
+	ctx = context.WithValue(ctx, "hostUrl", getHostBaseUrlFromQueryParams())
+	ctx = context.WithValue(ctx, "hostStylesheetUrl",
+		getHostResourceUrl(true, ctx.Value("hostBaseUrl").(string), "css"))
+	ctx = context.WithValue(ctx, "hostScriptUrl", "https://connect-cdn.atl-paas.net/all.js")
+
+	r = r.WithContext(ctx)
 
 	h.h.ServeHTTP(w, r)
 }
