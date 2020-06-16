@@ -94,24 +94,26 @@ if !ok {
 ```
 
 
-### HostRequest
+### Host-Request
+
+> I know that httpClient is in fact NO httpClient. It will be renamed in the future.
 
 `atlas-gonnect` also to do requests to the confluence/jira instance. You can either act as addon, but it also supports user impersonation.
 
-In a request, you can get the httpClient from the context. Then, you create a new request using `http.NewRequest` and modify it, if you want to.
+In a request, you can get the httpClient by calling `hostRequest.FromRequest`. Then, you create a new request using `http.NewRequest` and modify it, if you want to.
 
 Then, you pass it into the httpClient, using `AsAddon(request)` or `AsUser(request, userAccountId)`. The credentials as well the hostBaseUrl will be added.
 
 Use the `http.DefaultClient` to execute an request.
 
 ```
-httpClient := r.Context().Value("httpClient").(*hostrequest.HostRequest)
+httpClient, _ := hostrequest.FromRequest(r) // This is just an example; Normally, you should handle the second argument/error here
 request, _ := http.NewRequest("GET", "/rest/api/content", http.NoBody)
-_, err := httpClient.AsAddon(request)
-if err == nil {
-        response, _ := http.DefaultClient.Do(request)
-        log.Println(response)
-}
+httpClient.AsAddon(request) // returns pointer to request and an error/nil; should be handled
+// OR
+httpClient.AsUser(request, r.Context().Value("userAccountId").(string))
+response, _ := http.DefaultClient.Do(request)
+log.Println(response)
 ```
 
 

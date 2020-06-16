@@ -20,7 +20,7 @@ type HostRequest struct {
 	tenant    *store.Tenant
 }
 
-func FromRequest(addon *gonnect.Addon, r *http.Request) (*HostRequest, error) {
+func FromRequest(r *http.Request) (*HostRequest, error) {
 	ihttpClient := r.Context().Value("httpClient")
 	if ihttpClient == nil {
 		return nil, errors.New("Could not get httpClient from request context; no httpClient")
@@ -34,7 +34,7 @@ func FromRequest(addon *gonnect.Addon, r *http.Request) (*HostRequest, error) {
 	// We could also do it for every new request, but I think this shouldn't be
 	// required
 	// however, technically this could lead to difficulties if the secret changes
-	tenant, err := addon.Store.Get(httpClient.ClientKey)
+	tenant, err := httpClient.Addon.Store.Get(httpClient.ClientKey)
 	if err != nil {
 		return nil, err
 	}
