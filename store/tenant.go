@@ -14,7 +14,7 @@ type Tenant struct {
 	BaseURL        string `json:"baseUrl" gorm:"type:varchar(255);NOT NULL"`
 	ProductType    string `json:"productType" gorm:"type:varchar(255)"`
 	Description    string `json:"description" gorm:"type:varchar(255)"`
-	AddonInstalled bool   `json:"-" gorm:"type:bit;NOT NULL"`
+	AddonInstalled bool   `json:"-" gorm:"type:bool;NOT NULL"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	EventType      string `json:"eventType" gorm:"-"`
