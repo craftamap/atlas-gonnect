@@ -198,12 +198,17 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	accountID := ""
+	if oldVerClaims != nil && oldVerClaims["sub"] != nil {
+		accountID = oldVerClaims["sub"].(string)
+	}
+
 	verifiedParams := map[string]string{
 		"clientKey":   clientKey,
 		"hostBaseUrl": tenant.BaseURL,
 		"token":       tokenString,
 		// TODO: We may have to add the context workaround instead of just using sub as userAccountId, but lets ignore it for now
-		"userAccountId": oldVerClaims["sub"].(string),
+		"userAccountId": accountID,
 	}
 
 	requestHandler := NewRequestMiddleware(h.addon, verifiedParams)
