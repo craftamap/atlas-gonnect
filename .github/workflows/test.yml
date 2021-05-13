@@ -37,6 +37,7 @@ jobs:
       run: |
         go test -race -covermode atomic -coverprofile=profile.cov ./...
     - name: Send coverage
+      if: ${{ matrix.go-version == '1.16.x' }}
       env:
         COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
