@@ -104,6 +104,11 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		clientKey = unverifiedClaims["aud"].(string)
 	}
 
+	queryStringHash := unverifiedClaims["qsh"]
+	if queryStringHash == "" && !h.skipQsh {
+		util.SendError(w, h.addon, 401, "JWT claim did not contain the query string hash (qsh) claim")
+	}
+
 	tenant, err := h.addon.Store.Get(clientKey)
 
 	if err != nil {
