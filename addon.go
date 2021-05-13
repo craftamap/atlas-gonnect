@@ -38,9 +38,10 @@ type Addon struct {
 	Key             *string
 	Name            *string
 	Logger          *logrus.Logger
+	Product         string
 }
 
-func readAddonDescriptor(descriptorReader io.Reader, baseUrl string) (map[string]interface{}, error) {
+func readAddonDescriptor(descriptorReader io.Reader, baseUrl string, validateDescriptor bool, product string) (map[string]interface{}, error) {
 	vals := map[string]string{
 		"BaseUrl": baseUrl,
 	}
@@ -62,9 +63,16 @@ func readAddonDescriptor(descriptorReader io.Reader, baseUrl string) (map[string
 		return nil, err
 	}
 
+	unbuffered := buffer.String()
+
+	if validateDescriptor {
+		bool, err, errA := ValidateAppDescriptor(product, unbuffered)
+		LOG.Warnf("Validation was %t, %s, %+v", bool, err, errA)
+	}
+
 	descriptor := map[string]interface{}{}
 
-	err = json.Unmarshal(buffer.Bytes(), &descriptor)
+	err = json.Unmarshal([]byte(unbuffered), &descriptor)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +84,7 @@ func NewAddon(configFile io.Reader, descriptorFile io.Reader) (*Addon, error) {
 	LOG.Info("Initializing new Addon")
 
 	LOG.Debug("Create new config object")
-	config, currentProfile, err := NewConfig(configFile)
+	config, currentProfile, product, err := NewConfig(configFile)
 	if err != nil {
 		LOG.Errorf("Could not create new config object: %s\n", err)
 		return nil, err
@@ -89,7 +97,7 @@ func NewAddon(configFile io.Reader, descriptorFile io.Reader) (*Addon, error) {
 		return nil, err
 	}
 	LOG.Debug("Reading AddonDescriptor")
-	addonDescriptor, err := readAddonDescriptor(descriptorFile, config.BaseUrl)
+	addonDescriptor, err := readAddonDescriptor(descriptorFile, config.BaseUrl, config.ValidateDescriptor, product)
 	if err != nil {
 		LOG.Errorf("Could not read AddonDescriptor: %s\n", err)
 		return nil, err
@@ -113,6 +121,7 @@ func NewAddon(configFile io.Reader, descriptorFile io.Reader) (*Addon, error) {
 		AddonDescriptor: addonDescriptor,
 		Name:            &name,
 		Key:             &key,
+		Product:         product,
 	}
 
 	LOG.Info("Addon successfully initialized!")
