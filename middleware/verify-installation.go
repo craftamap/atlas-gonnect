@@ -10,15 +10,19 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 
 	gonnect "github.com/craftamap/atlas-gonnect"
 	"github.com/craftamap/atlas-gonnect/util"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/patrickmn/go-cache"
 )
 
 const (
 	CONNECT_INSTALL_KEYS_CDN_URL = "https://connect-install-keys.atlassian.com"
 )
+
+var keyFallbackCache = cache.New(4*time.Hour, 1*time.Hour)
 
 func isJwtAsymmetric(r *http.Request) bool {
 	tokenStr, ok := ExtractJwt(r)
@@ -42,14 +46,23 @@ func fetchKeyWithKeyId(keyId string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// TODO: somehow return a 404 here
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return "", err
-	}
-	bodyString := string(body)
+	if response.StatusCode == http.StatusOK {
+		// TODO: somehow return a 404 here
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return "", err
+		}
+		bodyString := string(body)
 
-	return bodyString, nil
+		keyFallbackCache.Add(keyId, bodyString, cache.DefaultExpiration)
+		return bodyString, nil
+	}
+
+	fallbackKey, ok := keyFallbackCache.Get(keyId)
+	if !ok {
+		return "", fmt.Errorf("Could not retrieve public Key from CDN or fallbackCache")
+	}
+	return fallbackKey.(string), nil
 }
 
 func decodeAsymmetric(tokenStr string, publicKey string, signedAlgorithm jwt.SigningMethod, noVerify bool) (jwt.MapClaims, error) {
