@@ -215,6 +215,10 @@ func (h VerifyInstallationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.R
 			}),
 		}.ServeHTTP(w, r)
 	} else {
+		if h.addon.Config.SignedInstall {
+			w.Header().Add("x-unexpected-symmetric-hook", "true")
+		}
+
 		_, err := h.addon.Store.Get(clientKey.(string))
 		if err != nil {
 			// If err is set here, we serve the normal installation
