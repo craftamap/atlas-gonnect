@@ -35,51 +35,51 @@ func extractUnverifiedClaims(tokenStr string, validator jwt.Keyfunc) (jwt.MapCla
 	}
 }
 
+func ExtractJwt(r *http.Request) (string, bool) {
+	var tokenInQuery = r.URL.Query().Get(JWT_PARAM)
+	if tokenInQuery == "" && r.Body == http.NoBody {
+		return "", false
+	}
+
+	tokenInBody := r.PostFormValue(JWT_PARAM)
+
+	if tokenInQuery != "" && tokenInBody != "" {
+		return "", false
+	}
+
+	var token string
+	if tokenInBody != "" {
+		token = tokenInBody
+	} else {
+		token = tokenInQuery
+	}
+
+	authHeader := r.Header.Get(AUTH_HEADER)
+	if authHeader != "" && strings.HasPrefix(authHeader, "JWT ") {
+		if token != "" {
+
+		} else {
+			token = strings.TrimPrefix(authHeader, "JWT ")
+		}
+	}
+
+	// TODO: JS implements r.Query().Get(TOKEN_KEY_PARAM) and r.Query().Get(TOKEN_KEY_HEADER) as possible
+	// Headers. However, it is marked as deprecated - we should follow the development of the js library
+	// and see if it gets removed. For now, this should work
+
+	if token == "" {
+		return "", false
+	}
+	return token, true
+}
+
 func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//TODO: Add better logging here
 	//TODO: Add AC_OPTS no-auth
 	//TODO: Refactor to be more compact
 	//TODO: scoping
 
-	extractJwt := func() (string, bool) {
-		var tokenInQuery = r.URL.Query().Get(JWT_PARAM)
-		if tokenInQuery == "" && r.Body == http.NoBody {
-			return "", false
-		}
-
-		tokenInBody := r.PostFormValue(JWT_PARAM)
-
-		if tokenInQuery != "" && tokenInBody != "" {
-			return "", false
-		}
-
-		var token string
-		if tokenInBody != "" {
-			token = tokenInBody
-		} else {
-			token = tokenInQuery
-		}
-
-		authHeader := r.Header.Get(AUTH_HEADER)
-		if authHeader != "" && strings.HasPrefix(authHeader, "JWT ") {
-			if token != "" {
-
-			} else {
-				token = strings.TrimPrefix(authHeader, "JWT ")
-			}
-		}
-
-		// TODO: JS implements r.Query().Get(TOKEN_KEY_PARAM) and r.Query().Get(TOKEN_KEY_HEADER) as possible
-		// Headers. However, it is marked as deprecated - we should follow the development of the js library
-		// and see if it gets removed. For now, this should work
-
-		if token == "" {
-			return "", false
-		}
-		return token, true
-	}
-
-	token, ok := extractJwt()
+	token, ok := ExtractJwt(r)
 	h.addon.Logger.Print(r.URL.String())
 	if !ok {
 		util.SendError(w, h.addon, 401, "Could not find auth data on request")
@@ -149,16 +149,10 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if !h.skipQsh && claims["qsh"] != "" {
-		expectedHash := atlasjwt.CreateQueryStringHash(r, false, h.addon.Config.BaseUrl)
-		if claims["qsh"] != expectedHash {
-			// If that didn't verify, it might be a  post/put - check the request body too
-			expectedHash := atlasjwt.CreateQueryStringHash(r, true, h.addon.Config.BaseUrl)
-			if claims["qsh"] != expectedHash {
-				util.SendError(w, h.addon, 401, fmt.Sprintf("Auth failure: Query hash mismatch: Received %s but calculated %s", claims["qsh"], expectedHash))
-				return
-			}
-		}
+	ok = ValidateQshFromRequest(claims, r, h.addon, h.skipQsh)
+	if !ok {
+		util.SendError(w, h.addon, 401, "Auth failure: Query hash mismatch")
+		return
 	}
 
 	h.addon.Logger.Info("Auth successful")
@@ -219,6 +213,20 @@ func (h AuthenticationMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	requestHandler := NewRequestMiddleware(h.addon, verifiedParams)
 
 	requestHandler(h.h).ServeHTTP(w, r)
+}
+
+func ValidateQshFromRequest(claims jwt.MapClaims, r *http.Request, addon *gonnect.Addon, skipQsh bool) bool {
+	if !skipQsh && claims["qsh"] != "" {
+		expectedHash := atlasjwt.CreateQueryStringHash(r, false, addon.Config.BaseUrl)
+		if claims["qsh"] != expectedHash {
+
+			expectedHash := atlasjwt.CreateQueryStringHash(r, true, addon.Config.BaseUrl)
+			if claims["qsh"] != expectedHash {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func NewAuthenticationMiddleware(addon *gonnect.Addon, skipQsh bool) func(h http.Handler) http.Handler {
