@@ -26,10 +26,7 @@ func isJwtAsymmetric(r *http.Request) bool {
 		return ok
 	}
 
-	token, err := jwt.Parse(tokenStr, nil)
-	if err != nil {
-		return false
-	}
+	token, _ := jwt.Parse(tokenStr, nil)
 	return token.Method == jwt.SigningMethodRS256
 }
 
@@ -56,10 +53,7 @@ func fetchKeyWithKeyId(keyId string) (string, error) {
 }
 
 func decodeAsymmetric(tokenStr string, publicKey string, signedAlgorithm jwt.SigningMethod, noVerify bool) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenStr, nil)
-	if err != nil {
-		return nil, err
-	}
+	token, _ := jwt.Parse(tokenStr, nil)
 	if token.Method.Alg() != signedAlgorithm.Alg() {
 		return nil, fmt.Errorf("Unexpected signing method: %v", token.Method.Alg())
 	}
@@ -67,8 +61,9 @@ func decodeAsymmetric(tokenStr string, publicKey string, signedAlgorithm jwt.Sig
 	claims := token.Claims
 
 	if !noVerify {
+		var err error
 		token, err = jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-			return []byte(publicKey), nil
+			return jwt.ParseRSAPublicKeyFromPEM([]byte(publicKey))
 		})
 		if err != nil {
 			return nil, err
@@ -80,10 +75,7 @@ func decodeAsymmetric(tokenStr string, publicKey string, signedAlgorithm jwt.Sig
 }
 
 func decodeAsymmetricToken(tokenStr string, noVerify bool) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenStr, nil)
-	if err != nil {
-		return nil, err
-	}
+	token, _ := jwt.Parse(tokenStr, nil)
 
 	keyIdI, ok := token.Header["kid"]
 	if !ok {
@@ -117,7 +109,7 @@ func (h signedInstallMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	ctx := context.WithValue(r.Context(), "clientKey", clientKey)
 	r = r.WithContext(ctx)
 
-	h.ServeHTTP(w, r)
+	h.next.ServeHTTP(w, r)
 }
 
 func (h signedInstallMiddleware) verifyAsymmetricJwtAndGetClaims(r *http.Request) (string, error) {
@@ -137,11 +129,11 @@ func (h signedInstallMiddleware) verifyAsymmetricJwtAndGetClaims(r *http.Request
 
 	clientKey := unverifiedClaims["iss"].(string)
 
-	if unverifiedClaims.VerifyAudience(h.addon.Config.BaseUrl, true) {
+	if !unverifiedClaims.VerifyAudience(h.addon.Config.BaseUrl, true) {
 		return "", fmt.Errorf("JWT claim did not contain the correct audience (aud) claim")
 	}
 
-	if unverifiedClaims["qsh"] != "" {
+	if unverifiedClaims["qsh"] == "" {
 		return "", fmt.Errorf("JWT claim did not contain the query string hash (qsh) claim")
 	}
 
