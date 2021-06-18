@@ -16,9 +16,10 @@ type Config struct {
 }
 
 type Profile struct {
-	Port    int
-	BaseUrl string
-	Store   StoreConfiguration
+	Port          int
+	BaseUrl       string
+	Store         StoreConfiguration
+	SignedInstall bool
 }
 
 type StoreConfiguration struct {
