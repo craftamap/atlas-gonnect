@@ -11,7 +11,7 @@ import (
 	atlasjwt "github.com/craftamap/atlas-gonnect/atlas-jwt"
 	atlasoauth2 "github.com/craftamap/atlas-gonnect/atlas-oauth2"
 	"github.com/craftamap/atlas-gonnect/store"
-	"github.com/dgrijalva/jwt-go"
+        "github.com/golang-jwt/jwt"
 )
 
 type HostRequest struct {

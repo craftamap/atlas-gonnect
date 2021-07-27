@@ -14,7 +14,7 @@ import (
 
 	gonnect "github.com/craftamap/atlas-gonnect"
 	"github.com/craftamap/atlas-gonnect/util"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/patrickmn/go-cache"
 )
 

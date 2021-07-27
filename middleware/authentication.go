@@ -9,7 +9,8 @@ import (
 	gonnect "github.com/craftamap/atlas-gonnect"
 	atlasjwt "github.com/craftamap/atlas-gonnect/atlas-jwt"
 	"github.com/craftamap/atlas-gonnect/util"
-	"github.com/dgrijalva/jwt-go"
+
+	"github.com/golang-jwt/jwt"
 )
 
 const JWT_PARAM = "jwt"
