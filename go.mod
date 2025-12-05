@@ -11,7 +11,7 @@ require (
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.8.3
 	github.com/spf13/viper v1.8.1
 	golang.org/x/text v0.3.8 // indirect
 )
